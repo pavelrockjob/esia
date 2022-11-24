@@ -2,34 +2,43 @@
 
 namespace Pavelrockjob\Esia;
 
-use Pavelrockjob\Esia\Api\EsiaPersonal;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
+use Pavelrockjob\Esia\Api\EsiaPrns;
 
 class EsiaApi
 {
-    private string $path = '/rs/prns/';
     private EsiaConfig $esiaConfig;
     private EsiaProvider $esiaProvider;
+    private EsiaPrns $esiaPrns;
 
     public function __construct(EsiaConfig $esiaConfig, EsiaProvider $esiaProvider)
     {
         $this->esiaConfig = $esiaConfig;
         $this->esiaProvider = $esiaProvider;
+        $this->esiaPrns = new EsiaPrns($this);
     }
 
-    public function prns(): EsiaPersonal
+    public function prns(): EsiaPrns
     {
-        $endpoint = $this->getEndpoint('');
-
-        $request = Http::withHeaders([
-            'Authorization' => 'Bearer '.$this->esiaProvider->getAccessToken()
-        ])->get($endpoint);
-
-        return new EsiaPersonal($request->body());
+        return $this->esiaPrns;
     }
 
-    private function getEndpoint(string $postfix): string
+    public function authRequest(): PendingRequest
     {
-        return $this->esiaConfig->esiaUrl.$this->path.'/'.$this->esiaProvider->getOid().'/'.$postfix;
+        return Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->esiaProvider->getAccessToken()
+        ]);
     }
+
+    public function getConfig(): EsiaConfig
+    {
+        return $this->esiaConfig;
+    }
+
+    public function getProvider(): EsiaProvider
+    {
+        return $this->esiaProvider;
+    }
+
 }

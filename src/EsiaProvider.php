@@ -10,7 +10,7 @@ class EsiaProvider
 {
     private EsiaConfig $config;
     private EsiaCryptoproSigner $signer;
-    public EsiaApi $api;
+    public EsiaApi $esiaApi;
 
     private string $state;
     private string $timestamp;
@@ -38,7 +38,7 @@ class EsiaProvider
         $this->state = $this->seedState();
         $this->timestamp = $this->makeTimestamp();
 
-        $this->api = new EsiaApi($this->config, $this);
+        $this->esiaApi = new EsiaApi($this->config, $this);
     }
 
     /**
@@ -48,22 +48,20 @@ class EsiaProvider
     {
 
         $queryParams = [
-            'client_id' => $this->config->clientId,
+            'client_id' => $this->config->getClientId(),
             'client_secret' => $this->signer->sign($this->makeSecret()),
-            'redirect_uri' => $this->config->redirectUrl,
+            'redirect_uri' => $this->config->getRedirectUrl(),
             'scope' => $this->config->getScopesString(),
-            'response_type' => $this->config->responseType,
+            'response_type' => $this->config->getResponseType(),
             'state' => $this->state,
             'timestamp' => $this->timestamp,
-            'access_type' => $this->config->accessType
+            'access_type' => $this->config->getAccessType()
         ];
 
         Session::put('state', $this->state);
         Session::save();
 
-
-
-        return $this->config->esiaUrl . "/aas/oauth2/ac?" . http_build_query($queryParams);
+        return $this->config->getEsiaUrl() . "/aas/oauth2/ac?" . http_build_query($queryParams);
     }
 
 
@@ -84,20 +82,20 @@ class EsiaProvider
         }
 
         $queryParams = [
-            'client_id' => $this->config->clientId,
+            'client_id' => $this->config->getClientId(),
             'code' => request()->get('code'),
             'grant_type' => 'authorization_code',
             'client_secret' => $this->signer->sign($this->makeSecret()),
             'state' => $this->state,
-            'redirect_uri' => $this->config->redirectUrl,
+            'redirect_uri' => $this->config->getRedirectUrl(),
             'scope' => $this->config->getScopesString(),
-            'response_type' => $this->config->responseType,
+            'response_type' => $this->config->getResponseType(),
             'timestamp' => $this->timestamp,
             'token_type' => 'Bearer',
         ];
 
 
-        $response = Http::asForm()->post($this->config->esiaUrl.'/aas/oauth2/te', $queryParams)->json();
+        $response = Http::asForm()->post($this->config->getEsiaUrl().'/aas/oauth2/te', $queryParams)->json();
 
         if (isset($response['error'])){
             throw new Exception($response['error_description']);
@@ -113,6 +111,11 @@ class EsiaProvider
         $this->accessToken = $response['access_token'];
         $this->refreshToken = $response['refresh_token'];
 
+    }
+
+    public function api(): EsiaApi
+    {
+        return $this->esiaApi;
     }
 
     private function makeTimestamp(): string
@@ -144,7 +147,7 @@ class EsiaProvider
 
     private function makeSecret(): string
     {
-        return $this->config->getScopesString().$this->timestamp.$this->config->clientId.$this->state;
+        return $this->config->getScopesString().$this->timestamp.$this->config->getClientId().$this->state;
     }
 
     private function jwtDecode(string $token)
