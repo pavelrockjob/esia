@@ -3,7 +3,7 @@ namespace Pavelrockjob\Esia\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
-class EsiaProvider extends ServiceProvider
+class LaravelProvider extends ServiceProvider
 {
     public function boot(){
         $this->publishes([

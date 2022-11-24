@@ -15,7 +15,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Pavelrockjob\\Esia\\EsiaProvider"
+                "Pavelrockjob\\Esia\\Providers\\LaravelProvider"
             ]
         }
 
