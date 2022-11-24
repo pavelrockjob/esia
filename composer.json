@@ -1,0 +1,23 @@
+{
+    "name": "pavelrockjob/esia",
+    "description": "Esia openid and auth2 provider for laravel",
+    "autoload": {
+        "psr-4": {
+            "Pavelrockjob\\Esia\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "pavelbulgarevich",
+            "email": "pavel.bulgarevich@kirarock.team"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Pavelrockjob\\Esia\\EsiaProvider"
+            ]
+        }
+
+    }
+}
