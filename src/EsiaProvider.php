@@ -3,6 +3,7 @@
 namespace Pavelrockjob\Esia;
 
 use Exception;
+use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Session;
 
@@ -16,15 +17,16 @@ class EsiaProvider
     private string $timestamp;
 
     //OID Пользователя
-    private int|null $oid = null;
+    private ?int $oid = null;
     //Учетная запись пользователя подтвержена
     private bool $isTrusted = false;
     //Тип субъекта
-    private string|null $typ = null;
+    private ?string $typ = null;
 
-    private string $accessToken;
-    private string $refreshToken;
+    private ?string $accessToken = null;
+    private ?string $refreshToken = null;
 
+    private Client $httpClient;
 
     /**
      * @param EsiaConfig $config
@@ -38,7 +40,10 @@ class EsiaProvider
         $this->state = $this->seedState();
         $this->timestamp = $this->makeTimestamp();
 
-        $this->esiaApi = new EsiaApi($this->config, $this);
+        $this->httpClient = new Client([
+            'base_uri' => $this->config->getEsiaUrl(),
+            'timeout' => $this->config->getHttpClientTimeOut()
+        ]);
     }
 
     /**
@@ -58,8 +63,15 @@ class EsiaProvider
             'access_type' => $this->config->getAccessType()
         ];
 
-        Session::put('state', $this->state);
-        Session::save();
+
+        if ($this->config->isStateVerifyEnabled()) {
+            if (!session_id()) {
+                session_start();
+            }
+
+            $_SESSION['esia_state'] = $this->state;
+        }
+
 
         return $this->config->getEsiaUrl() . "/aas/oauth2/ac?" . http_build_query($queryParams);
     }
@@ -68,22 +80,31 @@ class EsiaProvider
     /**
      * @throws Exception
      */
-    public function getToken(): void{
-        if (!Session::has('state')){
-            throw new Exception('State is not present');
+    public function getToken(): void
+    {
+
+        if ($this->config->isStateVerifyEnabled()) {
+            if (!session_id()) {
+                @session_start();
+            }
+
+            if (!isset($_SESSION['esia_state'])) {
+                throw new Exception('Session state is not present');
+            }
+
+            if ($_SESSION['esia_state'] !== $_REQUEST['state']) {
+                throw new Exception('Unprocessable state value');
+            }
         }
 
-        if (Session::get('state') !== request()->get('state')){
-            throw new Exception('Unprocessable state value');
-        }
 
-        if (!request()->has('code')){
+        if (empty($_REQUEST['code'])) {
             throw new Exception('Code is not present');
         }
 
         $queryParams = [
             'client_id' => $this->config->getClientId(),
-            'code' => request()->get('code'),
+            'code' => $_REQUEST['code'],
             'grant_type' => 'authorization_code',
             'client_secret' => $this->signer->sign($this->makeSecret()),
             'state' => $this->state,
@@ -95,21 +116,27 @@ class EsiaProvider
         ];
 
 
-        $response = Http::asForm()->post($this->config->getEsiaUrl().'/aas/oauth2/te', $queryParams)->json();
+        $response = $this->httpClient->request('POST', "/aas/oauth2/te", [
+            'form_params' => $queryParams
+        ])->getBody();
 
-        if (isset($response['error'])){
-            throw new Exception($response['error_description']);
+        $json = json_decode($response, true);
+
+        if (isset($json['error'])) {
+            throw new Exception($json['error_description']);
         }
 
-        $payload = $this->jwtDecode($response['id_token']);
+        $payload = $this->jwtDecode($json['id_token']);
 
 
         $this->oid = $payload['urn:esia:sbj']['urn:esia:sbj:oid'];
         $this->typ = $payload['urn:esia:sbj']['urn:esia:sbj:typ'];
         $this->isTrusted = isset($payload['urn:esia:sbj']['urn:esia:sbj:is_tru']);
 
-        $this->accessToken = $response['access_token'];
-        $this->refreshToken = $response['refresh_token'];
+        $this->accessToken = $json['access_token'];
+        $this->refreshToken = $json['refresh_token'];
+
+        $this->esiaApi = new EsiaApi($this->config, $this);
 
     }
 
@@ -147,18 +174,18 @@ class EsiaProvider
 
     private function makeSecret(): string
     {
-        return $this->config->getScopesString().$this->timestamp.$this->config->getClientId().$this->state;
+        return $this->config->getScopesString() . $this->timestamp . $this->config->getClientId() . $this->state;
     }
 
     private function jwtDecode(string $token)
     {
-        return json_decode(base64_decode(str_replace('_', '/', str_replace('-','+',explode('.', $token)[1]))), true);
+        return json_decode(base64_decode(str_replace('_', '/', str_replace('-', '+', explode('.', $token)[1]))), true);
     }
 
     /**
      * @return string
      */
-    public function getAccessToken(): string
+    public function getAccessToken(): ?string
     {
         return $this->accessToken;
     }
@@ -174,7 +201,7 @@ class EsiaProvider
     /**
      * @return string
      */
-    public function getRefreshToken(): string
+    public function getRefreshToken(): ?string
     {
         return $this->refreshToken;
     }
@@ -190,7 +217,7 @@ class EsiaProvider
     /**
      * @return string
      */
-    public function getState(): string
+    public function getState(): ?string
     {
         return $this->state;
     }
@@ -198,7 +225,7 @@ class EsiaProvider
     /**
      * @return string
      */
-    public function getTimestamp(): string
+    public function getTimestamp(): ?string
     {
         return $this->timestamp;
     }

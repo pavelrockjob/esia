@@ -7,17 +7,20 @@ use Pavelrockjob\Esia\Enums\EsiaScope;
 class EsiaConfig
 {
 
-    private ?string $esiaUrl = null;
-    private ?string $clientId = null;
-    private ?string $redirectUrl = null;
-    private array $scopes = [EsiaScope::fullname, EsiaScope::email, EsiaScope::openid];
-    private string $responseType = 'code';
-    private string $accessType = 'online';
+    protected ?string $esiaUrl = null;
+    protected ?string $clientId = null;
+    protected ?string $redirectUrl = null;
+    protected array $scopes = [EsiaScope::fullname, EsiaScope::email, EsiaScope::openid];
+    protected string $responseType = 'code';
+    protected string $accessType = 'online';
+    protected float $httpClientTimeOut = 5.0;
+
+    protected bool $isStateVerifyEnabled = true;
 
     /**
      * @param array $config
      */
-    public function __construct(array $config)
+    function __construct(array $config)
     {
         $this->esiaUrl = config('esia.esia_url');
         $this->clientId = config('esia.client_id');
@@ -31,6 +34,14 @@ class EsiaConfig
 
     }
 
+    /**
+     * @return bool
+     */
+    public function isStateVerifyEnabled(): bool
+    {
+        return $this->isStateVerifyEnabled;
+    }
+
     public function getScopesString(): string{
         $scopes = [];
         foreach ($this->scopes as $scope){
@@ -38,7 +49,7 @@ class EsiaConfig
         }
         return implode(' ', $scopes);
     }
-    
+
     /**
      * @return string|null
      */
@@ -135,7 +146,21 @@ class EsiaConfig
         $this->accessType = $accessType;
     }
 
-   
+    /**
+     * @return float
+     */
+    public function getHttpClientTimeOut(): float
+    {
+        return $this->httpClientTimeOut;
+    }
+
+    /**
+     * @param float $httpClientTimeOut
+     */
+    public function setHttpClientTimeOut(float $httpClientTimeOut): void
+    {
+        $this->httpClientTimeOut = $httpClientTimeOut;
+    }
 
 
 }
