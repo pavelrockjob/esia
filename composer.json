@@ -1,6 +1,9 @@
 {
     "name": "pavelrockjob/esia",
     "description": "Esia openid and auth2 provider for laravel",
+    "require": {
+        "guzzlehttp/guzzle": "^7.0"
+    },
     "autoload": {
         "psr-4": {
             "Pavelrockjob\\Esia\\": "src/"
