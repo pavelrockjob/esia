@@ -3,26 +3,26 @@ namespace Pavelrockjob\Esia\Api;
 
 class EsiaPersonal
 {
-    private ?string $firstName = null;
-    private ?string $lastName = null;
-    private ?string $middleName = null;
+    protected ?string $firstName = null;
+    protected ?string $lastName = null;
+    protected ?string $middleName = null;
 
     //тип учетной записи (подтверждена («true») / не подтверждена(«false»));
-    private ?bool $trusted = null;
-    private ?int $updatedOn = null;
-    private ?bool $rfgUOperatorCheck = null;
-    private ?string $status = null;
-    private ?bool $verifying = null;
+    protected ?bool $trusted = null;
+    protected ?int $updatedOn = null;
+    protected ?bool $rfgUOperatorCheck = null;
+    protected ?string $status = null;
+    protected ?bool $verifying = null;
     //идентификатор текущего документа пользователя
-    private ?int $rIdDoc = null;
-    private ?bool $containsUpCfmCode = null;
-    private ?string $eTag = null;
-    private ?string $gender = null;
-    private ?string $citizenship = null;
-    private ?string $snils = null;
-    private ?string $inn = null;
+    protected ?int $rIdDoc = null;
+    protected ?bool $containsUpCfmCode = null;
+    protected ?string $eTag = null;
+    protected ?string $gender = null;
+    protected ?string $citizenship = null;
+    protected ?string $snils = null;
+    protected ?string $inn = null;
     //информация о самозанятом
-    private ?string $selfEmployed = null;
+    protected ?string $selfEmployed = null;
 
     public function __construct(string $data)
     {

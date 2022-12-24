@@ -4,13 +4,13 @@ namespace Pavelrockjob\Esia;
 
 use Exception;
 use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Session;
+use Pavelrockjob\Esia\Exceptions\EsiaProviderException;
+use Pavelrockjob\Esia\Signers\EsiaCryptoproSigner;
 
 class EsiaProvider
 {
     private EsiaConfig $config;
-    private EsiaCryptoproSigner $signer;
+    private mixed $signer;
     public EsiaApi $esiaApi;
 
     private string $state;
@@ -32,10 +32,15 @@ class EsiaProvider
      * @param EsiaConfig $config
      * @throws Exception
      */
-    public function __construct(EsiaConfig $config = new EsiaConfig([]))
+    public function __construct(EsiaConfig $config = new EsiaConfig([]), $signer = null)
     {
         $this->config = $config;
-        $this->signer = new EsiaCryptoproSigner();
+
+        if (is_null($signer)){
+            $this->signer = new EsiaCryptoproSigner();
+        } else {
+            $this->signer = $signer;
+        }
 
         $this->state = $this->seedState();
         $this->timestamp = $this->makeTimestamp();
@@ -51,7 +56,6 @@ class EsiaProvider
      */
     public function getAuthLink(): string
     {
-
         $queryParams = [
             'client_id' => $this->config->getClientId(),
             'client_secret' => $this->signer->sign($this->makeSecret()),
@@ -72,8 +76,7 @@ class EsiaProvider
             $_SESSION['esia_state'] = $this->state;
         }
 
-
-        return $this->config->getEsiaUrl() . "/aas/oauth2/ac?" . http_build_query($queryParams);
+        return $this->config->getEsiaUrl() . "/aas/oauth2/ac?" . htmlspecialchars(http_build_query($queryParams), ENT_QUOTES, 'UTF-8');
     }
 
 
@@ -89,17 +92,18 @@ class EsiaProvider
             }
 
             if (!isset($_SESSION['esia_state'])) {
-                throw new Exception('Session state is not present');
+                throw new EsiaProviderException('Session state is not present');
             }
 
+
             if ($_SESSION['esia_state'] !== $_REQUEST['state']) {
-                throw new Exception('Unprocessable state value');
+                throw new EsiaProviderException('Unprocessable state value');
             }
         }
 
 
         if (empty($_REQUEST['code'])) {
-            throw new Exception('Code is not present');
+            throw new EsiaProviderException('Code is not present');
         }
 
         $queryParams = [
@@ -123,8 +127,9 @@ class EsiaProvider
         $json = json_decode($response, true);
 
         if (isset($json['error'])) {
-            throw new Exception($json['error_description']);
+            throw new EsiaProviderException($json['error_description']);
         }
+
 
         $payload = $this->jwtDecode($json['id_token']);
 

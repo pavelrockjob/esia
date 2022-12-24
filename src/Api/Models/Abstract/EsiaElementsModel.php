@@ -4,6 +4,7 @@ namespace Pavelrockjob\Esia\Api\Models\Abstract;
 
 use Pavelrockjob\Esia\Api\Models\EsiaElement;
 use Pavelrockjob\Esia\EsiaApi;
+use Pavelrockjob\Esia\Exceptions\EsiaProviderException;
 
 class EsiaElementsModel
 {
@@ -31,7 +32,7 @@ class EsiaElementsModel
         $json = json_decode($response, true);
 
         if (!isset($json['elements'])) {
-            throw new \Exception('Get elements request error: elements is not set. Check scope.');
+            throw new EsiaProviderException('Get elements request error: elements is not set. Check scope.');
         }
 
         foreach ($json['elements'] as $element){

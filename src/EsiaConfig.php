@@ -3,6 +3,7 @@
 namespace Pavelrockjob\Esia;
 
 use Pavelrockjob\Esia\Enums\EsiaScope;
+use Pavelrockjob\Esia\Exceptions\EsiaConfigException;
 
 class EsiaConfig
 {
@@ -19,17 +20,24 @@ class EsiaConfig
 
     /**
      * @param array $config
+     * @throws EsiaConfigException
      */
     function __construct(array $config)
     {
-        $this->esiaUrl = config('esia.esia_url');
-        $this->clientId = config('esia.client_id');
-        $this->redirectUrl = config('esia.redirect_url');
+        if (function_exists('config')){
+            $this->esiaUrl = config('esia.esia_url');
+            $this->clientId = config('esia.client_id');
+            $this->redirectUrl = config('esia.redirect_url');
+        }
 
         foreach ($config as $key => $value) {
             if (property_exists($this, $key)) {
                 $this->{$key} = $value;
             }
+        }
+
+        if (is_null($this->esiaUrl) || is_null($this->clientId) || is_null($this->redirectUrl)){
+            throw new EsiaConfigException('Esia config requred params not set. Please check esiaUrl, clientId, reirectUrl.');
         }
 
     }
