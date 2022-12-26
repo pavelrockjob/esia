@@ -2,20 +2,29 @@
 
 namespace Pavelrockjob\Esia;
 
-use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Client;
+use Pavelrockjob\Esia\Exceptions\EsiaSignerException;
 
 class EsiaCryptoproSigner
 {
-    private string $serviceUrl;
-    private string $client;
-    private string $secret;
-    private string $string;
+    protected string $serviceUrl;
+    protected string $client;
+    protected string $secret;
+    protected string $string;
+
+    protected Client $httpClient;
+
 
     public function __construct()
     {
         $this->serviceUrl = config('esia.signer.url');
         $this->client = config('esia.signer.client');
         $this->secret = config('esia.signer.secret');
+
+        $this->httpClient = new Client([
+            'base_uri' => $this->serviceUrl,
+            'timeout' => 5,
+        ]);
     }
 
     /**
@@ -31,28 +40,30 @@ class EsiaCryptoproSigner
     /**
      * @throws \Exception
      */
-    private function makeRequest(): string{
-        try {
+    private function makeRequest(): string
+    {
+        $formParams = [
+            'client' => $this->client,
+            'secret' => $this->secret,
+            'string' => $this->string
+        ];
 
-            $response = json_decode(Http::get($this->serviceUrl, [
-                'client' => $this->client,
-                'secret' => $this->secret,
-                'string' => $this->string
-            ])->body());
+        $response = $this->httpClient->request('POST', "/aas/oauth2/te", [
+            'form_params' => $formParams
+        ])->getBody();
 
-            if ($response->status != 'ok'){
-                throw new \Exception('Signer response status not ok');
-            }
+        $json = json_decode($response, true);
 
-            if (empty($response->signedContent)){
-                throw new \Exception('Signed content is empty');
-            }
-
-            return trim($response->signedContent);
-
-        } catch (\Exception $exception){
-            throw new \Exception($exception->getMessage());
+        if ($json['status'] != 'ok') {
+            throw new EsiaSignerException('Signer response status not ok');
         }
+
+        if (empty($json['signedContent'])) {
+            throw new EsiaSignerException('Signed content is empty');
+        }
+
+        return trim($json['signedContent']);
+
     }
 
 

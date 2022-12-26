@@ -54,7 +54,7 @@ class EsiaProvider
     /**
      * @throws Exception
      */
-    public function getAuthLink(): string
+    public function getAuthLink($html = false): string
     {
         $queryParams = [
             'client_id' => $this->config->getClientId(),
@@ -76,7 +76,13 @@ class EsiaProvider
             $_SESSION['esia_state'] = $this->state;
         }
 
-        return $this->config->getEsiaUrl() . "/aas/oauth2/ac?" . htmlspecialchars(http_build_query($queryParams), ENT_QUOTES, 'UTF-8');
+        $link = $this->config->getEsiaUrl() . "/aas/oauth2/ac?" . http_build_query($queryParams);
+
+        if ($html){
+            $link = htmlspecialchars($link, ENT_QUOTES, 'UTF-8');
+        }
+
+        return $link;
     }
 
 
